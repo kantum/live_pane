@@ -104,14 +104,17 @@ defmodule LivePane do
       // Restore saved pane layout from localStorage before hooks run to prevent flicker
       (() => {
         try {
-          const id = "<%= @group_id %>";
+          const id = <%= Phoenix.json_library().encode!(@group_id) %>;
+          const escapedId = (window.CSS && typeof window.CSS.escape === "function") ? window.CSS.escape(id) : id;
           const group = document.getElementById(id);
           if (!group) return;
-          const panes = [...group.querySelectorAll(`[data-pane-group-id='${id}'][data-pane-order][id]:not([data-pane-resizer])`)];
+          const panes = [...group.querySelectorAll(`[data-pane-group-id='${escapedId}'][data-pane-order][id]:not([data-pane-resizer])`)];
           if (!panes.length) return;
-          const data = JSON.parse(localStorage.getItem(`livepane:${id}`) || "{}");
-          const key = panes.map(p => p.id).sort().join(",");
-          const state = data[key];
+          // NOTE: Storage key format must match storage.ts getPaneGroupKey/getPaneKey
+          const storageKey = `livepane:${id}`;
+          const paneKey = panes.map(p => p.id).sort().join(",");
+          const data = JSON.parse(localStorage.getItem(storageKey) || "{}");
+          const state = data[paneKey];
           if (!state?.layout || state.layout.length !== panes.length) return;
           panes.sort((a, b) => (parseInt(a.dataset.paneOrder) || 0) - (parseInt(b.dataset.paneOrder) || 0));
           panes.forEach((pane, i) => Object.assign(pane.style, { flexGrow: state.layout[i], flexBasis: "0", flexShrink: "1", overflow: "hidden" }));
